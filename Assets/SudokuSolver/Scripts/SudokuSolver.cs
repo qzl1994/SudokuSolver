@@ -26,8 +26,7 @@ namespace SudokuSolver
                     {
                         GameObject sudoku = Instantiate(sudokuPrefab) as GameObject;
                         sudoku.transform.SetParent(SudokuPanel, false);
-                        SudokuObject sudokuObject = new SudokuObject(id, j, i, 0, sudoku);
-                        SudokuList.Add(sudokuObject);
+                        SudokuList.Add(new SudokuObject(id, j, i, 0, sudoku));
                         id++;
                     }
                 }
@@ -40,7 +39,6 @@ namespace SudokuSolver
         /// </summary>
         public void CalculateSudoku()
         {
-
             StartCoroutine(CalculateCoroutine());
         }
 
@@ -74,7 +72,7 @@ namespace SudokuSolver
         }
 
         /// <summary>
-        /// 
+        /// 无解判断
         /// </summary>
         /// <returns>The index.</returns>
         public int GetFirstIndex()
