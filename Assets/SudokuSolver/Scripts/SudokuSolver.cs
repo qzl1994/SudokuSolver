@@ -1,120 +1,168 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using System.Collections;
 
-/// <summary>
-/// 数独解算器
-/// </summary>
 namespace SudokuSolver
 {
     public class SudokuSolver : MonoBehaviour
     {
-        public GameObject SudokuPanel;
+        public Transform SudokuPanel;
         public Button StartButton;
-
-        private int Length = 9;
-        private int[,] Sudoku = new int[9, 9];
-        private GameObject[,] Cell = new GameObject[9, 9];
-
-        int[] query = new int[9] { 0, 0, 0, 3, 3, 3, 6, 6, 6 };
+        public Text Result;
+        public List<SudokuObject> SudokuList = new List<SudokuObject>();
 
         void Awake()
         {
+            Object sudokuPrefab = Resources.Load("Prefabs/Sudoku") as Object;
 
-            Object cellPrefab = Resources.Load("Prefabs/cell") as Object;
-            if (cellPrefab != null)
+            if (sudokuPrefab != null)
             {
-                for(int i = 0; i < Length; i++)
+                int id = 0;
+
+                for (int i = 0; i < 9; i++)
                 {
-                    for(int j = 0; j < Length; j++)
+                    for (int j = 0; j < 9; j++)
                     {
-                        GameObject cell = Instantiate(cellPrefab) as GameObject;
-                        cell.transform.SetParent(SudokuPanel.transform, false);
-                        Cell[i, j] = cell;
+                        GameObject sudoku = Instantiate(sudokuPrefab) as GameObject;
+                        sudoku.transform.SetParent(SudokuPanel, false);
+                        SudokuObject sudokuObject = new SudokuObject(id, j, i, 0, sudoku);
+                        SudokuList.Add(sudokuObject);
+                        id++;
                     }
                 }
             }
-        }
-
-        void Start()
-        {
-            StartButton.onClick.AddListener(GetSudoku);
+            StartButton.onClick.AddListener(CalculateSudoku);
         }
 
         /// <summary>
-        /// 填补数独数组，开始解算
+        /// 开始解算
         /// </summary>
-        public void GetSudoku()
+        public void CalculateSudoku()
         {
-            for(int i = 0; i < Length; i++)
-            {
-                for(int j = 0; j < Length; j++)
-                {
-                    Sudoku[i,j] = int.Parse(Cell[i, j].GetComponent<InputField>().text);
-                }
-            }
 
-            SudokuSolve(0);
+            StartCoroutine(CalculateCoroutine());
         }
 
-        public void SudokuSolve(int n)
+        /// <summary>
+        /// 判断数独
+        /// </summary>
+        /// <param name="index">Index.</param>
+        /// <param name="Sudoku">Sudoku.</param>
+        public bool ValidateSudoku(SudokuObject Sudoku)
         {
-            if(n == 81)
+            foreach (SudokuObject sudoku in SudokuList)
             {
-                Debug.Log("Over");
-                return;
-            }
-
-            int i = n / 9, j = n % 9;
-
-            if(Sudoku[i,j] != 0)
-            {
-                SudokuSolve(n + 1);
-
-                return;
-            }
-
-            for(int k = 0; k < 9; k++)
-            {
-                Sudoku[i, j]++;
-                Cell[i, j].GetComponent<InputField>().text = Sudoku[i, j].ToString();
-
-                if (IsVaild(i, j))
+                //判断行列
+                if (( Sudoku.row == sudoku.row ) || ( Sudoku.col == sudoku.col ))
                 {
-                    SudokuSolve(n + 1);
-                }
-            }
-
-            Sudoku[i, j] = 0;
-            return;
-        }
-
-        public bool IsVaild(int i, int j)
-        {
-            int num = Sudoku[i, j];
-
-            int k, u;
-
-            for (k = 0; k < Length; k++)
-            {
-                if (( k != i && Sudoku[k, j] == num ) || (k!=j && Sudoku[i,k] == num ))
-                {
-                    return false;
-                }
-            }
-
-            //每个九宫格是否重复
-            for (k = query[i]; k < query[i] + 3; k++)
-            {
-                for (u = query[j]; u < query[j] + 3; u++)
-                {
-                    if (( k != i || u != j ) && Sudoku[k, u] == num)
+                    if (( Sudoku.id != sudoku.id ) && ( Sudoku.value == sudoku.value ))
                     {
                         return false;
                     }
-                        
+                }
+                //判断九宫格
+                if (Sudoku.area == sudoku.area)
+                {
+                    if (( Sudoku.id != sudoku.id ) && ( Sudoku.value == sudoku.value ))
+                    {
+                        return false;
+                    }
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// 无解判断
+        /// </summary>
+        /// <returns>The index.</returns>
+        public int GetFirstIndex()
+        {
+            for (int i = 0; i < SudokuList.Count; i++)
+            {
+                if (!SudokuList[i].constant)
+                {
+                    return SudokuList[i].id;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// 回溯
+        /// </summary>
+        /// <param name="n"></param>
+        /// <returns></returns>
+		public int Backdate(int n)
+        {
+            for (int i = n - 1; i >= 0; i--)
+            {
+                if (!SudokuList[i].constant)
+                {
+                    if (SudokuList[i].value != 9)
+                    {
+                        return SudokuList[i].id;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// 协程，计算
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator CalculateCoroutine()
+        {
+            float timeStart = Time.realtimeSinceStartup;
+            int index = 0;
+            bool result = false;
+
+            for (int i = 0; i < SudokuList.Count; i++)
+            {
+                if (SudokuList[i].value > 0 && SudokuList[i].value <= 9)
+                {
+                    SudokuList[i].constant = true;
+                }
+            }
+
+            while (index < 81 && ( !result ))
+            {
+                if (SudokuList[index].constant)
+                {
+                    index++;
+                }
+                else
+                {
+                    SudokuList[index].ChangeValue();
+
+                    if (ValidateSudoku(SudokuList[index]))
+                    {
+                        index++;
+                        continue;
+                    }
+
+                    if (SudokuList[index].value >= 9)
+                    {
+                        if (index == GetFirstIndex())
+                        {
+                            result = true;
+                            Debug.Log("Error");
+                        }
+
+                        SudokuList[index].ResetValue();
+                        index = Backdate(index);
+                    }
+                }
+
+                yield return 0;
+            }
+
+            if (!result)
+            {
+                Result.text = ( Time.realtimeSinceStartup - timeStart ).ToString();
+            }
         }
     }
 }
