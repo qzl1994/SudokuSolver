@@ -58,6 +58,7 @@ namespace SudokuSolver
                 {
                     Result.text = "输入有误";
                     flag = false;
+                    constantSudokuList.Clear();
                     break;
                 }
             }
@@ -65,7 +66,6 @@ namespace SudokuSolver
             Debug.Log(flag);
             if (flag)
             {
-                Debug.Log("Start");
                 StartCoroutine(CalculateCoroutine());
             }
         }
