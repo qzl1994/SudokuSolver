@@ -10,7 +10,9 @@ namespace SudokuSolver
         public Transform SudokuPanel;
         public Button StartButton;
         public Text Result;
-        public List<SudokuObject> SudokuList = new List<SudokuObject>();
+        public List<SudokuObject> sudokuList = new List<SudokuObject>();
+
+        private List<SudokuObject> constantSudokuList = new List<SudokuObject>();
 
         void Awake()
         {
@@ -26,7 +28,7 @@ namespace SudokuSolver
                     {
                         GameObject sudoku = Instantiate(sudokuPrefab) as GameObject;
                         sudoku.transform.SetParent(SudokuPanel, false);
-                        SudokuList.Add(new SudokuObject(id, j, i, 0, sudoku));
+                        sudokuList.Add(new SudokuObject(id, j, i, 0, sudoku));
                         id++;
                     }
                 }
@@ -39,7 +41,33 @@ namespace SudokuSolver
         /// </summary>
         public void CalculateSudoku()
         {
-            StartCoroutine(CalculateCoroutine());
+            for (int i = 0; i < sudokuList.Count; i++)
+            {
+                if (sudokuList[i].value > 0 && sudokuList[i].value <= 9)
+                {
+                    sudokuList[i].constant = true;
+                    constantSudokuList.Add(sudokuList[i]);
+                }
+            }
+
+            bool flag =true;
+
+            foreach(SudokuObject sudoku in constantSudokuList)
+            {
+                if (!ValidateSudoku(sudoku))
+                {
+                    Result.text = "输入有误";
+                    flag = false;
+                    break;
+                }
+            }
+
+            Debug.Log(flag);
+            if (flag)
+            {
+                Debug.Log("Start");
+                StartCoroutine(CalculateCoroutine());
+            }
         }
 
         /// <summary>
@@ -49,7 +77,7 @@ namespace SudokuSolver
         /// <param name="Sudoku">Sudoku.</param>
         public bool ValidateSudoku(SudokuObject Sudoku)
         {
-            foreach (SudokuObject sudoku in SudokuList)
+            foreach (SudokuObject sudoku in sudokuList)
             {
                 //判断行列
                 if (( Sudoku.row == sudoku.row ) || ( Sudoku.col == sudoku.col ))
@@ -77,11 +105,11 @@ namespace SudokuSolver
         /// <returns>The index.</returns>
         public int GetFirstIndex()
         {
-            for (int i = 0; i < SudokuList.Count; i++)
+            for (int i = 0; i < sudokuList.Count; i++)
             {
-                if (!SudokuList[i].constant)
+                if (!sudokuList[i].constant)
                 {
-                    return SudokuList[i].id;
+                    return sudokuList[i].id;
                 }
             }
             return 0;
@@ -96,11 +124,11 @@ namespace SudokuSolver
         {
             for (int i = n - 1; i >= 0; i--)
             {
-                if (!SudokuList[i].constant)
+                if (!sudokuList[i].constant)
                 {
-                    if (SudokuList[i].value != 9)
+                    if (sudokuList[i].value != 9)
                     {
-                        return SudokuList[i].id;
+                        return sudokuList[i].id;
                     }
                 }
             }
@@ -117,31 +145,23 @@ namespace SudokuSolver
             int index = 0;
             bool result = false;
 
-            for (int i = 0; i < SudokuList.Count; i++)
-            {
-                if (SudokuList[i].value > 0 && SudokuList[i].value <= 9)
-                {
-                    SudokuList[i].constant = true;
-                }
-            }
-
             while (index < 81 && ( !result ))
             {
-                if (SudokuList[index].constant)
+                if (sudokuList[index].constant)
                 {
                     index++;
                 }
                 else
                 {
-                    SudokuList[index].ChangeValue();
+                    sudokuList[index].ChangeValue();
 
-                    if (ValidateSudoku(SudokuList[index]))
+                    if (ValidateSudoku(sudokuList[index]))
                     {
                         index++;
                         continue;
                     }
 
-                    if (SudokuList[index].value >= 9)
+                    if (sudokuList[index].value >= 9)
                     {
                         if (index == GetFirstIndex())
                         {
@@ -149,7 +169,7 @@ namespace SudokuSolver
                             Debug.Log("Error");
                         }
 
-                        SudokuList[index].ResetValue();
+                        sudokuList[index].ResetValue();
                         index = Backdate(index);
                     }
                 }
